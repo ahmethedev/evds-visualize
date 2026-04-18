@@ -1,0 +1,32 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      - EVDS_API_KEY=${EVDS_API_KEY}
+      - CACHE_DB_PATH=/app/data/cache.db
+      - LOG_LEVEL=DEBUG
+    volumes:
+      - ./backend/app:/app/app
+      - backend_data:/app/data
+    ports:
+      - "8000:8000"
+
+  frontend:
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  backend_data:
+  frontend_node_modules:

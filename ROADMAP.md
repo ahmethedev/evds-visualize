@@ -1,0 +1,325 @@
+# EVDS Görselleştirme Projesi — Yol Haritası
+
+> Canlı dokümandır. Geliştirme ilerledikçe güncellenir. Son güncelleme: 2026-04-18.
+
+---
+
+## 1. Vizyon
+
+TCMB'nin Elektronik Veri Dağıtım Sistemi (EVDS) şu an sadece ekonomistlerin kullanabildiği bir arayüze sahip (evds3.tcmb.gov.tr). Bu projenin amacı, aynı veriyi **genel kitle için anlaşılır ve keşfedilebilir** kılacak bir web uygulaması geliştirmek.
+
+**Tasarım ilhamı:** [predictions.paradigm.xyz](https://predictions.paradigm.xyz/) — treemap + zaman kaydırıcısı + breadcrumb drill-down kombinasyonu. Paradigm ekibinin ifadesiyle: *"making these markets intuitive and accessible to a much wider audience."*
+
+**Birebir aynı tasarım hedeflenmiyor** — editorial estetik (serif başlık + monospace UI, krem arkaplan, pastel doygunluk düşük bloklar) ile çerçeveyi korurken, içerikler Türkiye ekonomi verisine göre yeniden kurulacak.
+
+---
+
+## 2. Keşif Bulguları (2026-04-18)
+
+EVDS API'si canlı olarak test edildi. Python `evds` paketi (fatihmete/evds) kullanılıyor.
+
+### Kategori yapısı
+- **145 kategori**, **11 temiz üst-seviye grup** + arşiv.
+- Üst seviye ID'ler (10, 15, 20, 25, 30, 35, 40, 45, 50, 55) *parent* — doğrudan veri içermez.
+- Asıl **datagroup**'lar 4 haneli (1501, 2005, 2501, vs.) ve 6 haneli alt kodlarda.
+
+### Hiyerarşi gömülü
+**Kritik bulgu:** Her datagroup içindeki hiyerarşi zaten `SERIE_NAME` alanında kodlanmış:
+
+| Datagroup | Format | Örnek |
+|---|---|---|
+| TÜFE (`bie_tukfiy2025`) | COICOP numerik | `01. Gıda` → `011. Gıda` → `0111. Tahıllar` → `01111. Tahıllar` |
+| Bütçe (`bie_kbmgel`) | Noktalı | `1.` → `1.1.` → `1.1.1.` → `1.1.1.1.` |
+| TCMB Bilanço (`bie_abanlbil`) | Harf+sayı | `A.` → `A.2` → `A.2A` → `A.2Aa` → `A.2Aa1` |
+| Krediler (`bie_krehacbs`) | Noktalı | `1.` → `1.1.` → `1.1.1.` |
+
+Yani ağacı oluşturmak için ekstra metadata çağrısı yok — isim parse ediciyle çıkar.
+
+### Matematik doğrulaması
+Canlı çekilen veride **parçaların toplamı = raporlanan toplam** (treemap için kritik).
+
+Örn. Tedavüldeki Banknotlar (2026-03):
+- Toplam: 898.3 Milyar TL (raporlanan = bileşenlerin toplamı — fark yok)
+- 200 TL: %87.3 (784.4 Milyar TL) ← manşet-değerinde bir gözlem
+- 100 TL: %9.4 / 50 TL: %1.5 / geri kalan: %1.8
+
+MB Rezervleri (2026-04-10):
+- Toplam: $170.9B (Altın $106.8B + Döviz $64.1B)
+
+### Treemap-uygun 9 kompozisyon
+| Kod | Ad | Seri | Not |
+|---|---|---|---|
+| `bie_abanlbil` | TCMB Analitik Bilanço | 31 | Aktif/Pasif — klasik |
+| `bie_mbblnca` | TCMB Bilançosu (Yeni) | 152 | En detaylı |
+| `bie_kbmgel` | Merkezi Yönetim Bütçe Gelirleri | 111 | Vergi kırılımı |
+| `bie_kbmgid` | Merkezi Yönetim Bütçe Harcamaları | 172 | Fonksiyon kırılımı |
+| `bie_tukfiy2025` | TÜFE 2025 | 349 | COICOP hiyerarşisi — en hikaye-güçlü |
+| `bie_krehacbs` | Krediler - Bankacılık Sektörü | 32 | Kimlere kredi gidiyor |
+| `bie_pbpanal2` | Para Arzı ve Karşılık Kalemleri | 62 | M1/M2/M3 |
+| `bie_abres2` | MB Rezervleri | 3 | Altın + Döviz |
+| `bie_tedavultut` | Tedavüldeki Banknotlar (TL) | 8 | Halka yakın, hızlı MVP |
+
+### Zaman serisi veri (line/dashboard için)
+Kompozisyon olmayan ama halkın umurunda olanlar:
+- `bie_dkdovytl` — TCMB Döviz Kurları (USD/TRY, EUR/TRY, …)
+- `bie_mkaltytl` — Altın fiyatı (TRY)
+- `bie_tukfiy2025.GENEL` — TÜFE genel endeks
+- `bie_tufe1yi` — Yİ-ÜFE
+- Politika faizi (`bie_` — lokasyonu henüz teyit edilmedi, Faz 0'da konumlandır)
+- `bie_tisguc` — İşgücü Göstergeleri (işsizlik)
+
+---
+
+## 3. Ürün: 3-Katmanlı Yapı
+
+### Katman 1 — "Türkiye Bugün" (Landing)
+**Hedef kitle:** Mahalleli. USD/TRY ne oldu, altın ne olmuş, son enflasyon kaç?
+
+**İçerik:** 6-8 kart — her biri büyük rakam + mini sparkline + YoY/MoM değişim.
+- USD/TRY, EUR/TRY
+- Gram altın
+- TÜFE (YoY)
+- Politika faizi
+- MB Rezervleri
+- İşsizlik oranı
+- Cari işlemler dengesi (opsiyonel)
+
+**Etkileşim:** Kart tıklanınca Katman 3'e (o serinin zaman grafiği) yönlenir.
+
+### Katman 2 — "Ekonomi Haritası" (Treemap — Paradigm tarzı)
+**Hedef kitle:** Meraklı vatandaş, gazeteci, öğrenci.
+
+**İçerik:** 9 kompozisyonun seçilebildiği tek sayfa.
+- Üstte segment bar: 9 kompozisyon seçeneği + arama
+- Ana görsel: D3 treemap, breadcrumb ile drill-down
+- Altta zaman cetveli (timeline scrubber) — seçilen tarihe göre treemap güncellenir
+- Hover tooltip: değer + toplam içindeki pay + üst-düğüm içindeki pay
+- View toggle: Tree / Bar / Bar% / Line (tekil seri için) / Raw data
+
+### Katman 3 — "Seri Keşfi" (Advanced)
+**Hedef kitle:** Analist, araştırmacı, power user.
+
+**İçerik:**
+- Sol: 145 kategoriyi gösteren ağaç navigasyonu + arama
+- Sağ: Seçilen serinin/serilerin grafiği
+- Çoklu seri karşılaştırma
+- Tarih aralığı seçici, sıklık ayarı (günlük/aylık/yıllık), dönüşüm (YoY değişim, moving average)
+- CSV/PNG export
+
+---
+
+## 4. Mimari
+
+### Stack
+| Katman | Seçim | Neden |
+|---|---|---|
+| Frontend | Vite + React 19 + TypeScript | Basit dockerize, SSR yok (dashboard, SEO kritik değil) |
+| Router | React Router v7 | Paradigm tarzı URL drill-down için |
+| Stil | Tailwind CSS | Hızlı + küçük bundle |
+| Görselleştirme | D3 (d3-hierarchy, d3-selection, d3-scale) | Treemap + custom interactions |
+| Font | EB Garamond (serif) + IBM Plex Mono | Ücretsiz, editorial hava |
+| Backend | FastAPI (Python 3.12) | EVDS paketi Python, aynı runtime |
+| EVDS client | `evds` (PyPI) | Kanıtlanmış, zaten çalışıyor |
+| Cache | SQLite + bir TTL tablosu | MVP için yeterli; trafik artarsa Redis |
+| Reverse proxy | nginx | Docker compose içinde, SSL termination |
+| Deploy | Docker Compose → VPS | Tek komut deploy, rollback kolay |
+
+### Dizin yapısı
+```
+evds_data/
+├── .env                        # EVDS_API_KEY (gitignored)
+├── .env.example                # Şablon
+├── .gitignore
+├── ROADMAP.md                  # Bu dosya
+├── README.md
+├── docker-compose.yml          # Prod compose
+├── docker-compose.dev.yml      # Dev (hot reload)
+├── nginx/
+│   └── default.conf            # Reverse proxy config
+├── backend/
+│   ├── Dockerfile
+│   ├── pyproject.toml
+│   ├── app/
+│   │   ├── main.py             # FastAPI entry
+│   │   ├── config.py           # Settings (env vars)
+│   │   ├── evds_client.py      # evds paketinin wrapperı
+│   │   ├── cache.py            # SQLite TTL cache
+│   │   ├── hierarchy.py        # Seri ismi → ağaç parser
+│   │   ├── routes/
+│   │   │   ├── composition.py  # /api/composition/{datagroup}
+│   │   │   ├── series.py       # /api/series/{code}
+│   │   │   ├── dashboard.py    # /api/dashboard
+│   │   │   └── catalog.py      # /api/catalog (145 kategori ağacı)
+│   │   └── models.py           # Pydantic şemalar
+│   └── tests/
+├── frontend/
+│   ├── Dockerfile              # Multi-stage: node build → nginx serve
+│   ├── package.json
+│   ├── vite.config.ts
+│   ├── tailwind.config.ts
+│   ├── index.html
+│   └── src/
+│       ├── main.tsx
+│       ├── App.tsx
+│       ├── routes/
+│       │   ├── landing.tsx     # Katman 1
+│       │   ├── map.tsx         # Katman 2
+│       │   └── explorer.tsx    # Katman 3
+│       ├── components/
+│       │   ├── Treemap.tsx
+│       │   ├── TimelineScrubber.tsx
+│       │   ├── Breadcrumb.tsx
+│       │   ├── Sparkline.tsx
+│       │   ├── IndicatorCard.tsx
+│       │   └── SeriesChart.tsx
+│       ├── lib/
+│       │   ├── api.ts          # Backend client
+│       │   ├── hierarchy.ts    # Tree utilities
+│       │   └── format.ts       # TL/USD/tarih biçimlendirme
+│       └── styles/
+└── explore/                    # Var olan keşif betikleri (referans, koda karışmaz)
+    ├── 01_enumerate.py
+    ├── 02_probe.py
+    ├── 03_probe_leaves.py
+    ├── 04_inspect_series.py
+    ├── 05_fetch_values.py
+    └── cache/                  # JSON dumpları (gitignored)
+```
+
+### Cache stratejisi
+EVDS API yavaş ve rate-limit'li. SQLite cache şart.
+
+| Endpoint tipi | TTL | Sebep |
+|---|---|---|
+| `main_categories`, `datagroups` | 7 gün | Nadiren değişir |
+| `series_list` (bir datagroup'un serileri) | 7 gün | Yapı stabil |
+| Veri (günlük sıklık) | 1 saat | Yeni değerler gün içinde yayınlanabilir |
+| Veri (aylık sıklık) | 12 saat | Ay içinde değişmez |
+| Veri (tarihsel — >30 gün eski) | 30 gün | Retrospektif değişmez |
+
+İlk çağrıda EVDS'ye vurulur, cache'e yazılır, sonraki çağrılar cache'ten gelir. Cache `backend/data/cache.db` altında. Volume mount ile VPS'te kalıcı.
+
+### API endpoint'leri (taslak)
+```
+GET /api/dashboard                            → Katman 1 tüm göstergeler
+GET /api/catalog                              → 145 kategori ağacı
+GET /api/composition/{datagroup}?date=YYYYMMDD → Katman 2 bir kompozisyonun snapshot'ı
+GET /api/composition/{datagroup}/timeline     → Zaman cetveli için tarih-toplam çifti
+GET /api/series/{serie_code}?start=&end=&freq= → Katman 3 tek seri
+GET /api/search?q=                            → Seri arama
+```
+
+### Docker
+- **Frontend Dockerfile:** multi-stage — `node:22-alpine` build → `nginx:alpine` serve statik dosyaları
+- **Backend Dockerfile:** `python:3.12-slim`, uvicorn ile çalışır, healthcheck endpoint'i
+- **docker-compose.yml:** backend + frontend + nginx reverse proxy (nginx dış trafiği `/api/*` → backend, diğerini frontend'e yönlendirir)
+- **SSL:** VPS tarafında certbot ile nginx container'ına letsencrypt
+
+---
+
+## 5. Yol Haritası (Faz-faz)
+
+Her faz sonu çalışır durumda olmalı; yarım bırakılmaz.
+
+### Faz 0 — Setup & Scaffold
+- [ ] Proje dizin iskelesi (backend/, frontend/, docker/)
+- [ ] `.env.example` + README stub
+- [ ] FastAPI "hello world" + healthcheck endpoint
+- [ ] Vite + React + Tailwind başlangıç (default route "hello world")
+- [ ] Dev `docker-compose.dev.yml` (hot reload frontend + backend)
+- [ ] Prod `docker-compose.yml` iskeleti (nginx reverse proxy dahil)
+- [ ] Backend'de EVDS client + SQLite cache tabanı
+- **Çıktı:** `docker compose -f docker-compose.dev.yml up` ile iki tarafı birden ayağa kaldırabilmek
+
+### Faz 1 — Katman 2 MVP: Tek kompozisyon uçtan uca
+- [ ] Hiyerarşi parser (en az COICOP numerik format — TÜFE için)
+- [ ] Backend: `GET /api/composition/{datagroup}` — hiyerarşik JSON döndürür
+- [ ] Frontend: `/map` route, D3 treemap component
+- [ ] Breadcrumb drill-down (URL ile senkron)
+- [ ] Hover tooltip (değer + % pay)
+- [ ] İlk hedef datagroup: **`bie_tedavultut`** (8 seri — hızlı, görseli manşet değerinde)
+- **Çıktı:** `https://<domain>/map/bie_tedavultut` — çalışan treemap
+
+### Faz 2 — Katman 2 Tam: 9 kompozisyon + timeline
+- [ ] 9 datagroup için hiyerarşi parser genelleştirilir (3 format: COICOP, noktalı, harf+sayı)
+- [ ] Segment bar — 9 kompozisyon arası geçiş
+- [ ] Timeline scrubber component (d3-brush tabanlı)
+- [ ] Tarihe göre snapshot API'si
+- [ ] View toggle: Tree / Bar / Bar%
+- [ ] Animasyonlu geçişler (treemap cell'leri interpolate)
+- **Çıktı:** 9 kompozisyonun tamamı çalışır, zaman kaydırıcı snapshot'ı değiştirir
+
+### Faz 3 — Katman 1: Landing dashboard
+- [ ] Gösterge kartı tasarımı + Sparkline component
+- [ ] Backend: `GET /api/dashboard` — 8 göstergeyi toplu döner
+- [ ] Günlük cron-benzeri refresh (ilk çağrıda cache warm)
+- [ ] Mobil responsive grid
+- [ ] Kart tıklama → Katman 3'e deep-link
+- **Çıktı:** `https://<domain>/` — mahalleli bir bakışta umursadığını görür
+
+### Faz 4 — Katman 3: Series Explorer
+- [ ] 145 kategori ağacı (lazy load — ilk seferde sadece üst seviye)
+- [ ] Arama (backend full-text, SQLite FTS5)
+- [ ] Seri çizme: tekil line chart
+- [ ] Çoklu seri karşılaştırma (aynı eksen / iki eksen seçeneği)
+- [ ] Tarih aralığı, frekans, formül (YoY %, MA) kontrolleri
+- [ ] CSV + PNG export
+- **Çıktı:** Power user tüm EVDS'yi gezip karşılaştırabilir
+
+### Faz 5 — Polish & Deploy
+- [ ] Typography ince ayar (EB Garamond + IBM Plex Mono yüklenip kullanılır)
+- [ ] Dark mode (opsiyonel — Paradigm yalnız light tema)
+- [ ] i18n scaffold (TR default, EN opsiyonel — EVDS `lang="ENG"` destekliyor)
+- [ ] Performance: bundle analizi, code splitting, image lazy load
+- [ ] VPS'e ilk deploy + domain + SSL (certbot)
+- [ ] Analytics (Plausible veya basit self-hosted)
+- [ ] Error tracking (Sentry self-host veya log)
+- **Çıktı:** Canlı, public URL
+
+### Faz 6+ — Sonrası (tartışılacak)
+- Bookmark / link paylaşma özelliği
+- "Bugün TÜFE'ye en çok katkı yapan kalemler" gibi otomatik hikayeler
+- Mobile-native deneyim
+- RSS / email bülten
+
+---
+
+## 6. Güncel Durum
+
+| Konu | Durum |
+|---|---|
+| API key | ✅ Aktif, `.env` içinde |
+| `evds` paketi | ✅ PyPI'den kurulu, test edildi |
+| Keşif | ✅ Tamamlandı, `explore/cache/` JSON'lar var |
+| Kompozisyon matematiği | ✅ Doğrulandı |
+| ROADMAP | ✅ Bu dosya |
+| Faz 0 | ⏳ Başlayacak |
+
+---
+
+## 7. Açık Sorular / Kararlar
+
+| Soru | Karar / Not |
+|---|---|
+| Port planı | Dev: backend 8000, frontend 5173. Prod: nginx 80/443, iç network. |
+| Redis? | Hayır — SQLite ile başla, darboğaz olursa geç |
+| Auth? | Hayır — public site, rate limit backend'de |
+| Politika faizi serisi kodu | Faz 0'da tespit edilecek (1005 veya 450505 civarında) |
+| Cari açık serisi kodu | Faz 0'da tespit edilecek (`bie_odeayrsunum6` alt seri) |
+| Dil | Default TR, EN opsiyonel (Faz 5) |
+| Monorepo mu ayrı repo mu | Monorepo (tek Docker compose, basit) |
+| Backend paketleme | ✅ `uv` (hızlı, `uv.lock` reproducible) |
+
+---
+
+## 8. İlkeler (geliştirme sırasında hatırlanacak)
+
+1. **Halk için tasarla.** Her ekranda "tetede benim ablam bunu anlar mı?" testini geç.
+2. **Hız > güzellik.** Düşük bağlantıda bile 3 saniyede açılsın.
+3. **Cache agresif.** EVDS yavaş, bizim API hızlı olmak zorunda.
+4. **Çalışır durumda kal.** Her fazın sonunda deploy edilebilir bir şey olsun.
+5. **Paradigm ilham, kopya değil.** Türkiye'ye özgü hikayeler (200 TL %87 gibi) öne çıksın.
+
+---
+
+*Dosya canlıdır. Değişiklikler commit mesajında ya da not bırakılarak yapılabilir.*
