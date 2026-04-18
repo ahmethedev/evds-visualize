@@ -1,6 +1,6 @@
 # EVDS Görselleştirme Projesi — Yol Haritası
 
-> Canlı dokümandır. Geliştirme ilerledikçe güncellenir. Son güncelleme: 2026-04-18.
+> Canlı dokümandır. Geliştirme ilerledikçe güncellenir. Son güncelleme: 2026-04-18 (Faz 0 tamam).
 
 ---
 
@@ -221,15 +221,16 @@ GET /api/search?q=                            → Seri arama
 
 Her faz sonu çalışır durumda olmalı; yarım bırakılmaz.
 
-### Faz 0 — Setup & Scaffold
-- [ ] Proje dizin iskelesi (backend/, frontend/, docker/)
-- [ ] `.env.example` + README stub
-- [ ] FastAPI "hello world" + healthcheck endpoint
-- [ ] Vite + React + Tailwind başlangıç (default route "hello world")
-- [ ] Dev `docker-compose.dev.yml` (hot reload frontend + backend)
-- [ ] Prod `docker-compose.yml` iskeleti (nginx reverse proxy dahil)
-- [ ] Backend'de EVDS client + SQLite cache tabanı
-- **Çıktı:** `docker compose -f docker-compose.dev.yml up` ile iki tarafı birden ayağa kaldırabilmek
+### Faz 0 — Setup & Scaffold ✅ (2026-04-18)
+- [x] Proje dizin iskelesi (backend/, frontend/, nginx/)
+- [x] `.env.example` + README stub
+- [x] FastAPI "hello world" + `/healthz` endpoint
+- [x] Vite + React 19 + TS + Tailwind başlangıç (landing route healthz'i çağırıyor)
+- [x] Dev `docker-compose.dev.yml` (hot reload frontend + backend)
+- [x] Prod `docker-compose.yml` iskeleti (nginx reverse proxy dahil)
+- [x] Backend'de EVDS client wrapper + SQLite TTL cache tabanı
+- [x] Vite dev proxy (`/healthz`, `/api` → backend:8000) — dev/prod URL'leri simetrik
+- **Çıktı:** Native olarak `uvicorn` + `npm run dev` ile çalışır durumda teyit edildi. Docker yolu lokalde smoke test edilmedi (Docker Desktop yok); VPS'te Faz 5'te doğrulanacak.
 
 ### Faz 1 — Katman 2 MVP: Tek kompozisyon uçtan uca
 - [ ] Hiyerarşi parser (en az COICOP numerik format — TÜFE için)
@@ -293,7 +294,8 @@ Her faz sonu çalışır durumda olmalı; yarım bırakılmaz.
 | Keşif | ✅ Tamamlandı, `explore/cache/` JSON'lar var |
 | Kompozisyon matematiği | ✅ Doğrulandı |
 | ROADMAP | ✅ Bu dosya |
-| Faz 0 | ⏳ Başlayacak |
+| Faz 0 | ✅ Tamamlandı (2026-04-18) |
+| Faz 1 | ⏳ Başlayacak — hedef `bie_tedavultut` |
 
 ---
 

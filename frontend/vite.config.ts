@@ -9,6 +9,10 @@ export default defineConfig({
     watch: {
       usePolling: true,
     },
+    proxy: {
+      "/healthz": "http://localhost:8000",
+      "/api": "http://localhost:8000",
+    },
   },
   preview: {
     port: 5173,
