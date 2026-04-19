@@ -34,13 +34,15 @@ import { formatNumber } from "../lib/format";
 type Props = {
   points: SeriesPoint[];
   label?: string;
+  valueSuffix?: string;
+  svgRef?: React.Ref<SVGSVGElement>;
 };
 
 type Hover = { i: number; x: number; y: number } | null;
 
 const MARGIN = { top: 16, right: 24, bottom: 28, left: 56 };
 
-export default function SeriesChart({ points, label }: Props) {
+export default function SeriesChart({ points, label, valueSuffix = "", svgRef }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [size, setSize] = useState({ w: 640, h: 320 });
   const [hover, setHover] = useState<Hover>(null);
@@ -110,13 +112,13 @@ export default function SeriesChart({ points, label }: Props) {
 
   return (
     <div ref={containerRef} className="relative h-full w-full">
-      <svg width={size.w} height={size.h} className="overflow-visible">
+      <svg ref={svgRef} width={size.w} height={size.h} className="overflow-visible">
         <g transform={`translate(${MARGIN.left},${MARGIN.top})`}>
           {yTicks.map((t) => (
             <g key={`y${t}`} transform={`translate(0,${yScale!(t)})`}>
               <line x1={0} x2={innerW} className="stroke-ink/10" />
               <text x={-8} dy="0.32em" textAnchor="end" className="fill-ink/60 text-[10px] font-mono">
-                {formatNumber(t)}
+                {formatNumber(t)}{valueSuffix}
               </text>
             </g>
           ))}
@@ -170,7 +172,7 @@ export default function SeriesChart({ points, label }: Props) {
           </div>
           <div className="text-ink/70">
             {label ? `${label}: ` : ""}
-            {formatNumber(parsed[hover.i].value)}
+            {formatNumber(parsed[hover.i].value)}{valueSuffix}
           </div>
         </div>
       )}

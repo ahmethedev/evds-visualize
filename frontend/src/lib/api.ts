@@ -84,6 +84,21 @@ export type CatalogResponse = {
 
 export type SeriesPoint = { date: string; value: number };
 
+export type SearchHit = {
+  code: string;
+  name: string;
+  datagroup: string;
+  datagroup_name: string;
+};
+
+export type SearchResponse = {
+  query: string;
+  results: SearchHit[];
+  index_ready: boolean;
+  index_building: boolean;
+  index_count: number;
+};
+
 export type SeriesResponse = {
   code: string;
   datagroup: string | null;

@@ -279,11 +279,11 @@ Her faz sonu çalışır durumda olmalı; yarım bırakılmaz.
 ### Faz 4 — Katman 3: Series Explorer
 - [x] 145 kategori ağacı (lazy load — `/api/catalog` + `/api/catalog?parent=`, üst seviye ⇾ subcat ⇾ datagroup ⇾ series, 7 günlük cache)
 - [x] Seri çizme: tekil line chart (`/api/series/{code}` + `SeriesChart.tsx`, SVG line + hover tooltip)
-- [ ] Arama (backend full-text, SQLite FTS5)
+- [x] Arama (SQLite FTS5, `unicode61 remove_diacritics 2`, bm25 sıralama) — `/api/search?q=` + `/api/search/status`; `backend/app/search.py` uygulama başlangıcında arka plan thread'le tüm kategori→datagroup→seri ağacını gezip indeksler (cache yardımıyla). Frontend: `SeriesSearch` debounced dropdown.
 - [ ] Çoklu seri karşılaştırma (aynı eksen / iki eksen seçeneği)
-- [ ] Tarih aralığı, frekans, formül (YoY %, MA) kontrolleri
-- [ ] CSV + PNG export
-- **Çıktı (kısmi, 2026-04-19):** `/explorer` route çalışır — sol lazy ağaç, sağ tekil line chart. `npx tsc --noEmit` + `vite build` temiz.
+- [x] Tarih aralığı (1Y/5Y/10Y/Tümü), sıklık (Ham/Aylık/Yıllık), dönüşüm (Değer/YoY%/MA3/MA12) kontrolleri — `lib/transforms.ts`, URL params `?range=&freq=&tx=`, client-side compute
+- [x] CSV + PNG export — `lib/export.ts`; CSV `date,value` (YoY modunda header `yoy_pct`); PNG için SVG clone → computed style'lar attribute'lara inline'lanır → 2× DPI canvas raster (krem arka planla)
+- **Çıktı (kısmi, 2026-04-19):** `/explorer` route çalışır — sol lazy ağaç + debounced FTS5 arama; sağ tekil line chart + toolbar (aralık/sıklık/dönüşüm/CSV/PNG). Çoklu seri kaldı.
 
 ### Faz 5 — Polish & Deploy
 - [ ] Typography ince ayar (EB Garamond + IBM Plex Mono yüklenip kullanılır)
@@ -317,7 +317,7 @@ Her faz sonu çalışır durumda olmalı; yarım bırakılmaz.
 | Faz 1 | ✅ Tamamlandı (2026-04-19) — `bie_tedavultut` + `bie_tukfiy2025` |
 | Faz 2 | ✅ Tamamlandı (2026-04-19) — segment bar, 9 kompozisyon, timeline scrubber, view toggle (Tree/Bar/Bar%), CSS-transition morph animasyonları |
 | Faz 3 | ✅ Tamamlandı (2026-04-19) — Landing dashboard 8 göstergeli IndicatorCard + Sparkline, `/api/dashboard`, responsive grid |
-| Faz 4 | 🟡 Devam — kategori ağacı (lazy) + tek seri line chart canlı; arama, çoklu seri, transformlar, export kaldı |
+| Faz 4 | 🟡 Devam — kategori ağacı + tek seri chart + toolbar (range/freq/transform) + FTS5 arama + CSV/PNG export canlı; çoklu seri kaldı |
 
 ---
 

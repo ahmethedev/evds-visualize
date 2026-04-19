@@ -1,9 +1,19 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routes import catalog, composition, dashboard, health, series
+from .routes import catalog, composition, dashboard, health, search, series
+from .search import search_index
 
-app = FastAPI(title="makroturkiye API", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    search_index.ensure_built_async()
+    yield
+
+
+app = FastAPI(title="makroturkiye API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -17,6 +27,7 @@ app.include_router(composition.router)
 app.include_router(dashboard.router)
 app.include_router(catalog.router)
 app.include_router(series.router)
+app.include_router(search.router)
 
 
 @app.get("/")
