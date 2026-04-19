@@ -8,6 +8,8 @@ __pycache__/
 venv/
 
 explore/cache/
+evds/
+backend/data/
 node_modules/
 .next/
 dist/
