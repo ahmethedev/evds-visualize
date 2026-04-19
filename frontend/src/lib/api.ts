@@ -11,3 +11,21 @@ export type Health = {
   evds_api_key_loaded: boolean;
   cache_purged: number;
 };
+
+export type CompositionNode = {
+  code: string;
+  name: string;
+  raw_name: string;
+  value: number | null;
+  children: CompositionNode[];
+};
+
+export type Composition = {
+  datagroup: string;
+  asof: string | null;
+  root: CompositionNode;
+  total: number;
+  total_source: "reported" | "sum";
+  reported_total: number | null;
+  sum_of_components: number;
+};

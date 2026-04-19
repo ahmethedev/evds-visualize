@@ -1,6 +1,6 @@
 # EVDS Görselleştirme Projesi — Yol Haritası
 
-> Canlı dokümandır. Geliştirme ilerledikçe güncellenir. Son güncelleme: 2026-04-18 (Faz 0 tamam).
+> Canlı dokümandır. Geliştirme ilerledikçe güncellenir. Son güncelleme: 2026-04-19 (Faz 1 tamam).
 
 ---
 
@@ -232,14 +232,18 @@ Her faz sonu çalışır durumda olmalı; yarım bırakılmaz.
 - [x] Vite dev proxy (`/healthz`, `/api` → backend:8000) — dev/prod URL'leri simetrik
 - **Çıktı:** Native olarak `uvicorn` + `npm run dev` ile çalışır durumda teyit edildi. Docker yolu lokalde smoke test edilmedi (Docker Desktop yok); VPS'te Faz 5'te doğrulanacak.
 
-### Faz 1 — Katman 2 MVP: Tek kompozisyon uçtan uca
-- [ ] Hiyerarşi parser (en az COICOP numerik format — TÜFE için)
-- [ ] Backend: `GET /api/composition/{datagroup}` — hiyerarşik JSON döndürür
-- [ ] Frontend: `/map` route, D3 treemap component
-- [ ] Breadcrumb drill-down (URL ile senkron)
-- [ ] Hover tooltip (değer + % pay)
-- [ ] İlk hedef datagroup: **`bie_tedavultut`** (8 seri — hızlı, görseli manşet değerinde)
-- **Çıktı:** `https://<domain>/map/bie_tedavultut` — çalışan treemap
+### Faz 1 — Katman 2 MVP: Tek kompozisyon uçtan uca ✅ (2026-04-19)
+- [x] Hiyerarşi parser (UST_SERIE_CODE tabanlı, flat + hiyerarşik; TÜFE COICOP ve Tedavültaki Banknotlar test edildi)
+- [x] Backend: `GET /api/composition/{datagroup}` — hiyerarşik JSON döndürür
+- [x] Frontend: `/map/:datagroup` route, D3 treemap component
+- [x] Breadcrumb drill-down (URL `?path=` ile senkron)
+- [x] Hover tooltip (değer + % pay — bu seviye ve toplam)
+- [x] İlk hedef datagroup: **`bie_tedavultut`** (8 seri — 898.3 Milyar TL, 200 TL %87.3)
+- [x] İkinci hedef: **`bie_tukfiy2025`** (349 seri, 13 üst grup, drill-down çalışır)
+- **Çıktı:** Dev ortamda `/map/bie_tedavultut` ve `/map/bie_tukfiy2025` çalışır durumda. Native `uvicorn` + `npm run dev` ile doğrulandı. Tarayıcıda görsel teyit edilmedi (geliştirici sonraki oturumda yapacak).
+- **Notlar:**
+  - TÜFE'de değerler endeks olduğundan alt-dallar toplamı üst değere eşit değildir; treemap endeks değerine göre boyutlanır, frontend'de kullanıcıyı uyaran bir not görünür. Faz 2'de ağırlık-bazlı sizing eklenecek.
+  - Parser hem `UST_SERIE_CODE` (sağlıklı ağaç) hem de "Toplam/Genel Endeks" isim kalıbını kullanır. 3 formatlı ada-parse gerekmedi; UST_SERIE_CODE alanı yeterli bilgi veriyor.
 
 ### Faz 2 — Katman 2 Tam: 9 kompozisyon + timeline
 - [ ] 9 datagroup için hiyerarşi parser genelleştirilir (3 format: COICOP, noktalı, harf+sayı)
@@ -295,7 +299,8 @@ Her faz sonu çalışır durumda olmalı; yarım bırakılmaz.
 | Kompozisyon matematiği | ✅ Doğrulandı |
 | ROADMAP | ✅ Bu dosya |
 | Faz 0 | ✅ Tamamlandı (2026-04-18) |
-| Faz 1 | ⏳ Başlayacak — hedef `bie_tedavultut` |
+| Faz 1 | ✅ Tamamlandı (2026-04-19) — `bie_tedavultut` + `bie_tukfiy2025` |
+| Faz 2 | ⏳ Başlayacak — 9 kompozisyon + timeline scrubber |
 
 ---
 
