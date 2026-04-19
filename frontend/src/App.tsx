@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import Landing from "./routes/landing";
 import MapRoute from "./routes/map";
+import Explorer from "./routes/explorer";
 import { DEFAULT_DATAGROUP } from "./lib/datagroups";
 
 export default function App() {
@@ -10,6 +11,7 @@ export default function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/map" element={<Navigate to={`/map/${DEFAULT_DATAGROUP}`} replace />} />
         <Route path="/map/:datagroup" element={<MapRoute />} />
+        <Route path="/explorer" element={<Explorer />} />
       </Routes>
     </BrowserRouter>
   );

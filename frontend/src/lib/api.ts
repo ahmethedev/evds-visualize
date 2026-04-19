@@ -62,3 +62,35 @@ export type Dashboard = {
   indicators: Indicator[];
   errors: Record<string, string> | null;
 };
+
+export type CatalogNodeType = "category" | "datagroup" | "series";
+
+export type CatalogNode = {
+  id: string;
+  label: string;
+  type: CatalogNodeType;
+  has_children: boolean;
+  freq?: string | null;
+  source?: string | null;
+  start?: string | null;
+  end?: string | null;
+  datagroup?: string | null;
+};
+
+export type CatalogResponse = {
+  parent: string | null;
+  children: CatalogNode[];
+};
+
+export type SeriesPoint = { date: string; value: number };
+
+export type SeriesResponse = {
+  code: string;
+  datagroup: string | null;
+  name: string | null;
+  freq: string | null;
+  start: string | null;
+  end: string | null;
+  source: string | null;
+  points: SeriesPoint[];
+};

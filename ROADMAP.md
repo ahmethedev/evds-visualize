@@ -1,4 +1,6 @@
-# EVDS Görselleştirme Projesi — Yol Haritası
+# makroturkiye — Yol Haritası
+
+**Domain:** `makroturkiye.com` · Proje, TCMB EVDS verisinin halka açık görselleştirmesidir.
 
 > Canlı dokümandır. Geliştirme ilerledikçe güncellenir. Son güncelleme: 2026-04-19 (Faz 3 tamamlandı; Landing dashboard 8 göstergeli IndicatorCard grid + Sparkline, `/api/dashboard` endpoint'i canlı).
 
@@ -275,13 +277,13 @@ Her faz sonu çalışır durumda olmalı; yarım bırakılmaz.
   - Cari denge `TP.ODEAYRSUNUM6.Q1` (1.Cari İşlemler Hesabı) — negatif değer kırmızı görünüyor (dashboard kodlaması pozitif/negatif fark).
 
 ### Faz 4 — Katman 3: Series Explorer
-- [ ] 145 kategori ağacı (lazy load — ilk seferde sadece üst seviye)
+- [x] 145 kategori ağacı (lazy load — `/api/catalog` + `/api/catalog?parent=`, üst seviye ⇾ subcat ⇾ datagroup ⇾ series, 7 günlük cache)
+- [x] Seri çizme: tekil line chart (`/api/series/{code}` + `SeriesChart.tsx`, SVG line + hover tooltip)
 - [ ] Arama (backend full-text, SQLite FTS5)
-- [ ] Seri çizme: tekil line chart
 - [ ] Çoklu seri karşılaştırma (aynı eksen / iki eksen seçeneği)
 - [ ] Tarih aralığı, frekans, formül (YoY %, MA) kontrolleri
 - [ ] CSV + PNG export
-- **Çıktı:** Power user tüm EVDS'yi gezip karşılaştırabilir
+- **Çıktı (kısmi, 2026-04-19):** `/explorer` route çalışır — sol lazy ağaç, sağ tekil line chart. `npx tsc --noEmit` + `vite build` temiz.
 
 ### Faz 5 — Polish & Deploy
 - [ ] Typography ince ayar (EB Garamond + IBM Plex Mono yüklenip kullanılır)
@@ -305,6 +307,7 @@ Her faz sonu çalışır durumda olmalı; yarım bırakılmaz.
 
 | Konu | Durum |
 |---|---|
+| Marka / domain | ✅ `makroturkiye` — `makroturkiye.com` (alınacak) |
 | API key | ✅ Aktif, `.env` içinde |
 | `evds` paketi | ✅ PyPI'den kurulu, test edildi |
 | Keşif | ✅ Tamamlandı, `explore/cache/` JSON'lar var |
@@ -314,6 +317,7 @@ Her faz sonu çalışır durumda olmalı; yarım bırakılmaz.
 | Faz 1 | ✅ Tamamlandı (2026-04-19) — `bie_tedavultut` + `bie_tukfiy2025` |
 | Faz 2 | ✅ Tamamlandı (2026-04-19) — segment bar, 9 kompozisyon, timeline scrubber, view toggle (Tree/Bar/Bar%), CSS-transition morph animasyonları |
 | Faz 3 | ✅ Tamamlandı (2026-04-19) — Landing dashboard 8 göstergeli IndicatorCard + Sparkline, `/api/dashboard`, responsive grid |
+| Faz 4 | 🟡 Devam — kategori ağacı (lazy) + tek seri line chart canlı; arama, çoklu seri, transformlar, export kaldı |
 
 ---
 
@@ -332,7 +336,30 @@ Her faz sonu çalışır durumda olmalı; yarım bırakılmaz.
 
 ---
 
-## 8. İlkeler (geliştirme sırasında hatırlanacak)
+## 8. Yasal Uyum (EVDS Kullanım Şartları + Gizlilik Politikası)
+
+EVDS Kullanım Şartları (evds3.tcmb.gov.tr) incelendi — izin verilen kapsamda kalıyoruz. Uyum için yapılanlar ve kısıtlar:
+
+### Yapılan
+- [x] **Kaynak gösterimi:** Her sayfanın altında `Disclaimer` componenti — "Kaynak: TCMB EVDS (evds3.tcmb.gov.tr)" linkli. Explorer üst bar'da da açık kaynak etiketi.
+- [x] **TCMB'den bağımsız olduğu açıklaması:** "makroturkiye bağımsız bir projedir; TCMB ile resmi bağlantısı yoktur" — her footer'da.
+- [x] **"Yatırım tavsiyesi değildir" uyarısı** (madde 2 gereği).
+- [x] **Sorumluluk sınırlaması** (madde 3 gereği) — verilerin doğruluğu/güncelliği için resmi kaynak EVDS'dir notu.
+
+### İleride tetiklenecek (şu an gerekmiyor)
+- **EN çeviri yapılırsa** (Faz 5 i18n): "TCMB'nin resmi çevirisi değildir" notu eklenmeli (madde 2).
+- **Analytics / cookie / üyelik eklenirse:** KVKK uyumlu gizlilik politikası + çerez banner'ı + "Profil/Hesap" ekranı gerekir. Şu an sıfır kullanıcı verisi toplandığı için yok.
+- **Monetizasyon:** Madde 2 "EVDS verisi için ek ücret yansıtılmaz" der — genel SaaS aboneliği OK, ancak "EVDS verisine erişim için öde" paketi yapılamaz. Bu kararı Faz 6+ ticari plan aşamasında tekrar oku.
+- **Hukuki/iletişim sayfası** (opsiyonel, /hakkinda route): Faz 5 polish içinde eklenebilir — projenin sahibi, iletişim e-postası, tam disclaimer metni.
+
+### Yapmayacağımız şeyler (şartnameye aykırı olur)
+- Verileri TCMB'den geliyormuş gibi doğrudan brand kullanımı (logo, "resmi TCMB verisi" ibaresi vb.)
+- Yatırım/al-sat tavsiyesi formatında sunum.
+- EVDS verisinin "özel sürüm" olduğu iddiası.
+
+---
+
+## 9. İlkeler (geliştirme sırasında hatırlanacak)
 
 1. **Halk için tasarla.** Her ekranda "tetede benim ablam bunu anlar mı?" testini geç.
 2. **Hız > güzellik.** Düşük bağlantıda bile 3 saniyede açılsın.

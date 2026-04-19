@@ -6,6 +6,7 @@ import { formatDateTR, formatTLCompact, formatNumber } from "../lib/format";
 import Breadcrumb from "../components/Breadcrumb";
 import Treemap, { type TreemapView } from "../components/Treemap";
 import TimelineScrubber from "../components/TimelineScrubber";
+import Disclaimer from "../components/Disclaimer";
 
 const VIEWS: { id: TreemapView; label: string }[] = [
   { id: "tree", label: "Tree" },
@@ -131,13 +132,16 @@ export default function MapRoute() {
   return (
     <main className="mx-auto max-w-6xl p-6 font-mono">
       <header className="mb-6">
-        <button
-          type="button"
-          className="mb-2 text-xs opacity-60 underline decoration-dotted underline-offset-4 hover:opacity-100"
-          onClick={() => navigate("/")}
-        >
-          ← Ana sayfa
-        </button>
+        <div className="mb-3 flex items-center justify-between text-xs">
+          <button
+            type="button"
+            className="opacity-60 underline decoration-dotted underline-offset-4 hover:opacity-100"
+            onClick={() => navigate("/")}
+          >
+            ← Ana sayfa
+          </button>
+          <span className="uppercase tracking-[0.3em] opacity-60">makroturkiye</span>
+        </div>
         <h1 className="font-serif text-3xl">Ekonomi Haritası</h1>
         <div className="mt-3 flex flex-wrap gap-1.5">
           {DATAGROUPS.map((g) => (
@@ -240,6 +244,9 @@ export default function MapRoute() {
           )}
         </>
       )}
+      <footer className="mt-12 border-t border-ink/10 pt-6">
+        <Disclaimer />
+      </footer>
     </main>
   );
 }

@@ -1,6 +1,6 @@
-# EVDS Görselleştirme
+# makroturkiye
 
-TCMB EVDS verisini genel kitle için erişilebilir kılan web uygulaması.
+TCMB EVDS verisini genel kitle için erişilebilir kılan web uygulaması. Yayın domaini: `makroturkiye.com`.
 
 Yol haritası ve mimari için bkz. [ROADMAP.md](./ROADMAP.md).
 

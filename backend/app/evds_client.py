@@ -14,6 +14,7 @@ from .config import settings
 SERIES_LIST_TTL = 7 * 24 * 3600
 VALUES_DAILY_TTL = 3600
 VALUES_MONTHLY_TTL = 12 * 3600
+CATALOG_TTL = 7 * 24 * 3600
 
 
 @lru_cache(maxsize=1)
@@ -23,6 +24,46 @@ def get_client() -> evdsAPI:
 
 def api_key_looks_valid() -> bool:
     return bool(settings.evds_api_key) and len(settings.evds_api_key) >= 8
+
+
+def _sanitize(rec: dict[str, Any]) -> dict[str, Any]:
+    for k, v in list(rec.items()):
+        if isinstance(v, float) and math.isnan(v):
+            rec[k] = None
+        elif not isinstance(v, (str, int, float, bool, type(None))):
+            rec[k] = str(v)
+    return rec
+
+
+def get_main_categories() -> list[dict[str, Any]]:
+    """Return all EVDS categories (flat list with CATEGORY_ID + TOPIC_TITLE_TR)."""
+    key = "main_categories"
+    hit = cache.get(key)
+    if hit is not None:
+        return hit
+    df = get_client().main_categories
+    records = [_sanitize(r) for r in df.to_dict(orient="records")]
+    cache.set(key, records, CATALOG_TTL)
+    return records
+
+
+def get_datagroups_for_category(category_id: int) -> list[dict[str, Any]]:
+    """Return datagroup metadata for a category id."""
+    key = f"datagroups:{category_id}"
+    hit = cache.get(key)
+    if hit is not None:
+        return hit
+    try:
+        df = get_client().get_sub_categories(category_id, detail=True)
+    except Exception:
+        cache.set(key, [], CATALOG_TTL)
+        return []
+    if df is None or len(df) == 0:
+        cache.set(key, [], CATALOG_TTL)
+        return []
+    records = [_sanitize(r) for r in df.to_dict(orient="records")]
+    cache.set(key, records, CATALOG_TTL)
+    return records
 
 
 def get_series_list(datagroup: str) -> list[dict[str, Any]]:

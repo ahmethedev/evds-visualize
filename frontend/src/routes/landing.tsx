@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { apiGet, type Dashboard } from "../lib/api";
 import IndicatorCard from "../components/IndicatorCard";
+import Disclaimer from "../components/Disclaimer";
 import { DEFAULT_DATAGROUP } from "../lib/datagroups";
 
 export default function Landing() {
@@ -18,9 +19,12 @@ export default function Landing() {
     <main className="min-h-screen bg-cream text-ink">
       <div className="mx-auto max-w-5xl px-6 py-12 font-mono">
         <header className="mb-10">
+          <div className="mb-6 text-xs uppercase tracking-[0.3em] opacity-60">
+            makroturkiye
+          </div>
           <h1 className="font-serif text-5xl tracking-tight">Türkiye Bugün</h1>
           <p className="mt-2 max-w-2xl text-sm opacity-70">
-            EVDS (TCMB Elektronik Veri Dağıtım Sistemi) verilerinden derlenen manşet göstergeler.
+            TCMB EVDS verilerinden derlenen manşet göstergeler.
             Bir karta dokunarak o göstergenin ait olduğu kompozisyona gir.
           </p>
           <div className="mt-4 flex gap-3 text-xs">
@@ -29,6 +33,12 @@ export default function Landing() {
               className="rounded border border-ink/30 px-3 py-1.5 hover:border-ink/70"
             >
               Ekonomi Haritası →
+            </Link>
+            <Link
+              to="/explorer"
+              className="rounded border border-ink/30 px-3 py-1.5 hover:border-ink/70"
+            >
+              Seri Keşfi →
             </Link>
           </div>
         </header>
@@ -62,8 +72,8 @@ export default function Landing() {
           </>
         )}
 
-        <footer className="mt-16 border-t border-ink/10 pt-6 text-[11px] opacity-50">
-          Kaynak: TCMB EVDS — evds3.tcmb.gov.tr. Veriler cache'lenir; en son güncelleme tarihi kartın altında.
+        <footer className="mt-16 border-t border-ink/10 pt-6">
+          <Disclaimer />
         </footer>
       </div>
     </main>
