@@ -37,3 +37,28 @@ export type Timeline = {
   total_source: "reported" | "sum" | null;
   points: TimelinePoint[];
 };
+
+export type IndicatorSparkPoint = { date: string; value: number };
+
+export type Indicator = {
+  key: string;
+  label: string;
+  name: string;
+  unit: string;
+  freq: "daily" | "weekly" | "monthly";
+  datagroup: string;
+  series_code: string;
+  transform: "latest" | "yoy_pct";
+  value: number | null;
+  asof: string | null;
+  sparkline: IndicatorSparkPoint[];
+  change_mom: number | null;
+  change_yoy: number | null;
+  change_mom_pct: number | null;
+  change_yoy_pct: number | null;
+};
+
+export type Dashboard = {
+  indicators: Indicator[];
+  errors: Record<string, string> | null;
+};

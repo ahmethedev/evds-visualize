@@ -1,6 +1,6 @@
 # EVDS Görselleştirme Projesi — Yol Haritası
 
-> Canlı dokümandır. Geliştirme ilerledikçe güncellenir. Son güncelleme: 2026-04-19 (Faz 2 view toggle + CSS-transition animasyonları eklendi; animasyonlu geçişler `transform`/`width`/`height` ile morph ediyor).
+> Canlı dokümandır. Geliştirme ilerledikçe güncellenir. Son güncelleme: 2026-04-19 (Faz 3 tamamlandı; Landing dashboard 8 göstergeli IndicatorCard grid + Sparkline, `/api/dashboard` endpoint'i canlı).
 
 ---
 
@@ -260,13 +260,19 @@ Her faz sonu çalışır durumda olmalı; yarım bırakılmaz.
   - Timeline endpoint default 5 yıl (override: `?years=N`); her tarih için `build_tree` çağırarak snapshot ile aynı toplam mantığını kullanır. d3-brush yerine HTML pointer events + SVG sparkline (daha az bağımlılık, aynı UX).
   - Doğrulama betikleri: `explore/06_validate_datagroups.py`, `explore/07_inspect_tree.py`.
 
-### Faz 3 — Katman 1: Landing dashboard
-- [ ] Gösterge kartı tasarımı + Sparkline component
-- [ ] Backend: `GET /api/dashboard` — 8 göstergeyi toplu döner
-- [ ] Günlük cron-benzeri refresh (ilk çağrıda cache warm)
-- [ ] Mobil responsive grid
-- [ ] Kart tıklama → Katman 3'e deep-link
-- **Çıktı:** `https://<domain>/` — mahalleli bir bakışta umursadığını görür
+### Faz 3 — Katman 1: Landing dashboard ✅ (2026-04-19)
+- [x] Seri kodları tespit edildi (`explore/08_find_indicators.py` + `explore/cache/indicators.json`) — 8 gösterge: USD/TRY, EUR/TRY, gram altın, TÜFE YoY, politika faizi (TP.APIFON4), MB rezervi, işsizlik, cari denge
+- [x] Backend `GET /api/dashboard` — 8 indicator paralel olmadan ama SQLite cache'le hızlı; value + MoM/YoY değişim + 12–24 aylık sparkline döner. `yoy_pct` transform TÜFE için value'yu YoY % olarak verir, MoM değişimi pp cinsinden
+- [x] Indicator config `backend/app/indicators.py` (TypedDict + ORDER listesi)
+- [x] Frontend: `Sparkline.tsx` (SVG, 160×36 default, üstte line + altta soft area), `IndicatorCard.tsx` (Link → /map/:datagroup), `routes/landing.tsx` tamamen yeniden yazıldı
+- [x] Responsive grid (sm:2, lg:4 kolon), skeleton loading, tarih gösterimi TR
+- [x] Kart tıklama şimdilik `/map/:datagroup`'a (Katman 3 Faz 4'te)
+- [x] Cache stratejisi mevcut: SQLite `values:*` TTL (daily=1h, monthly=12h) — ilk çağrıda EVDS'ye vurur, sonrası cache
+- **Çıktı:** `/` adresinde 8 göstergeli landing; `vite build` temiz, backend 8/8 indicator döndürüyor (USD/TRY 44.68, TÜFE YoY 30.9%, politika faizi 40%, rezerv 170.9B USD). Tarayıcı doğrulaması sonraki oturumda.
+- **Notlar:**
+  - Politika faizi için `TP.APIFON4` (TCMB Ağırlıklı Ortalama Fonlama Maliyeti) seçildi — günlük yayınlanır ve resmi 1-hafta repo ilan faizinden daha konuşkan; journalism-friendly.
+  - Gram altın `TP.MK.KUL.YTL` (Külçe, TL/Gr) — `TP.MK.CUM.YTL` (Cumhuriyet altını) yerine tercih edildi çünkü halkın bildiği fiyat gramlık.
+  - Cari denge `TP.ODEAYRSUNUM6.Q1` (1.Cari İşlemler Hesabı) — negatif değer kırmızı görünüyor (dashboard kodlaması pozitif/negatif fark).
 
 ### Faz 4 — Katman 3: Series Explorer
 - [ ] 145 kategori ağacı (lazy load — ilk seferde sadece üst seviye)
@@ -307,6 +313,7 @@ Her faz sonu çalışır durumda olmalı; yarım bırakılmaz.
 | Faz 0 | ✅ Tamamlandı (2026-04-18) |
 | Faz 1 | ✅ Tamamlandı (2026-04-19) — `bie_tedavultut` + `bie_tukfiy2025` |
 | Faz 2 | ✅ Tamamlandı (2026-04-19) — segment bar, 9 kompozisyon, timeline scrubber, view toggle (Tree/Bar/Bar%), CSS-transition morph animasyonları |
+| Faz 3 | ✅ Tamamlandı (2026-04-19) — Landing dashboard 8 göstergeli IndicatorCard + Sparkline, `/api/dashboard`, responsive grid |
 
 ---
 
@@ -317,8 +324,8 @@ Her faz sonu çalışır durumda olmalı; yarım bırakılmaz.
 | Port planı | Dev: backend 8000, frontend 5173. Prod: nginx 80/443, iç network. |
 | Redis? | Hayır — SQLite ile başla, darboğaz olursa geç |
 | Auth? | Hayır — public site, rate limit backend'de |
-| Politika faizi serisi kodu | Faz 0'da tespit edilecek (1005 veya 450505 civarında) |
-| Cari açık serisi kodu | Faz 0'da tespit edilecek (`bie_odeayrsunum6` alt seri) |
+| Politika faizi serisi kodu | ✅ `TP.APIFON4` (bie_apifon) — TCMB Ağırlıklı Ortalama Fonlama Maliyeti, günlük |
+| Cari açık serisi kodu | ✅ `TP.ODEAYRSUNUM6.Q1` (bie_odeayrsunum6) — 1.Cari İşlemler Hesabı, aylık |
 | Dil | Default TR, EN opsiyonel (Faz 5) |
 | Monorepo mu ayrı repo mu | Monorepo (tek Docker compose, basit) |
 | Backend paketleme | ✅ `uv` (hızlı, `uv.lock` reproducible) |
