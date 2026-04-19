@@ -3,10 +3,12 @@ import Landing from "./routes/landing";
 import MapRoute from "./routes/map";
 import Explorer from "./routes/explorer";
 import { DEFAULT_DATAGROUP } from "./lib/datagroups";
+import { RouteTracker } from "./lib/analytics";
 
 export default function App() {
   return (
     <BrowserRouter>
+      <RouteTracker />
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/map" element={<Navigate to={`/map/${DEFAULT_DATAGROUP}`} replace />} />
