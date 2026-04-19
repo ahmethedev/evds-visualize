@@ -29,3 +29,11 @@ export type Composition = {
   reported_total: number | null;
   sum_of_components: number;
 };
+
+export type TimelinePoint = { date: string; total: number };
+
+export type Timeline = {
+  datagroup: string;
+  total_source: "reported" | "sum" | null;
+  points: TimelinePoint[];
+};

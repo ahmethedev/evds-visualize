@@ -1,14 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
-import { apiGet, type Composition, type CompositionNode } from "../lib/api";
+import { apiGet, type Composition, type CompositionNode, type Timeline } from "../lib/api";
+import { DATAGROUPS, DEFAULT_DATAGROUP, getDatagroup } from "../lib/datagroups";
 import { formatDateTR, formatTLCompact, formatNumber } from "../lib/format";
 import Breadcrumb from "../components/Breadcrumb";
-import Treemap from "../components/Treemap";
+import Treemap, { type TreemapView } from "../components/Treemap";
+import TimelineScrubber from "../components/TimelineScrubber";
 
-const KNOWN_DATAGROUPS: { code: string; label: string; unit: "currency" | "index" }[] = [
-  { code: "bie_tedavultut", label: "Tedavüldeki Banknotlar", unit: "currency" },
-  { code: "bie_tukfiy2025", label: "TÜFE 2025", unit: "index" },
+const VIEWS: { id: TreemapView; label: string }[] = [
+  { id: "tree", label: "Tree" },
+  { id: "bar", label: "Bar" },
+  { id: "bar-pct", label: "Bar%" },
 ];
+
+function parseView(v: string | null): TreemapView {
+  return v === "bar" || v === "bar-pct" ? v : "tree";
+}
 
 function findByPath(root: CompositionNode, codes: string[]): CompositionNode[] {
   const trail: CompositionNode[] = [root];
@@ -23,10 +30,11 @@ function findByPath(root: CompositionNode, codes: string[]): CompositionNode[] {
 }
 
 export default function MapRoute() {
-  const { datagroup = "bie_tedavultut" } = useParams();
+  const { datagroup = DEFAULT_DATAGROUP } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const [data, setData] = useState<Composition | null>(null);
+  const [timeline, setTimeline] = useState<Timeline | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -35,8 +43,10 @@ export default function MapRoute() {
     () => (pathParam ? pathParam.split(",").filter(Boolean) : []),
     [pathParam],
   );
+  const asofParam = searchParams.get("asof");
+  const view = parseView(searchParams.get("view"));
 
-  const meta = KNOWN_DATAGROUPS.find((g) => g.code === datagroup);
+  const meta = getDatagroup(datagroup);
   const unitMode = meta?.unit ?? "currency";
 
   useEffect(() => {
@@ -44,7 +54,10 @@ export default function MapRoute() {
     setLoading(true);
     setError(null);
     setData(null);
-    apiGet<Composition>(`/api/composition/${datagroup}`)
+    const url = asofParam
+      ? `/api/composition/${datagroup}?asof=${asofParam}`
+      : `/api/composition/${datagroup}`;
+    apiGet<Composition>(url)
       .then((d) => {
         if (alive) setData(d);
       })
@@ -57,7 +70,35 @@ export default function MapRoute() {
     return () => {
       alive = false;
     };
+  }, [datagroup, asofParam]);
+
+  useEffect(() => {
+    let alive = true;
+    setTimeline(null);
+    apiGet<Timeline>(`/api/composition/${datagroup}/timeline`)
+      .then((d) => {
+        if (alive) setTimeline(d);
+      })
+      .catch(() => {
+        // Non-fatal: timeline missing, scrubber simply not shown.
+      });
+    return () => {
+      alive = false;
+    };
   }, [datagroup]);
+
+  function setAsof(date: string) {
+    const next = new URLSearchParams(searchParams);
+    next.set("asof", date);
+    setSearchParams(next, { replace: true });
+  }
+
+  function setView(v: TreemapView) {
+    const next = new URLSearchParams(searchParams);
+    if (v === "tree") next.delete("view");
+    else next.set("view", v);
+    setSearchParams(next, { replace: true });
+  }
 
   const trail = useMemo(() => {
     if (!data) return [] as CompositionNode[];
@@ -65,20 +106,27 @@ export default function MapRoute() {
   }, [data, pathCodes]);
 
   const current = trail.length > 0 ? trail[trail.length - 1] : data?.root ?? null;
+  const parent = trail.length > 1 ? trail[trail.length - 2] : null;
 
   function goDeeper(child: CompositionNode) {
     const next = [...pathCodes, child.code];
-    setSearchParams({ path: next.join(",") }, { replace: false });
+    const params = new URLSearchParams(searchParams);
+    params.set("path", next.join(","));
+    setSearchParams(params, { replace: false });
   }
 
   function setTrailIndex(i: number) {
     const next = pathCodes.slice(0, i);
-    if (next.length === 0) {
-      setSearchParams({}, { replace: false });
-    } else {
-      setSearchParams({ path: next.join(",") }, { replace: false });
-    }
+    const params = new URLSearchParams(searchParams);
+    if (next.length === 0) params.delete("path");
+    else params.set("path", next.join(","));
+    setSearchParams(params, { replace: false });
   }
+
+  const parentPct =
+    parent && parent.value && current && current.value !== null
+      ? (current.value / parent.value) * 100
+      : null;
 
   return (
     <main className="mx-auto max-w-6xl p-6 font-mono">
@@ -91,13 +139,13 @@ export default function MapRoute() {
           ← Ana sayfa
         </button>
         <h1 className="font-serif text-3xl">Ekonomi Haritası</h1>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {KNOWN_DATAGROUPS.map((g) => (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {DATAGROUPS.map((g) => (
             <button
               key={g.code}
               type="button"
               onClick={() => navigate(`/map/${g.code}`)}
-              className={`rounded border px-3 py-1 text-xs ${
+              className={`rounded border px-2.5 py-1 text-xs transition-colors ${
                 g.code === datagroup
                   ? "border-ink bg-ink text-cream"
                   : "border-ink/30 hover:border-ink/60"
@@ -131,25 +179,63 @@ export default function MapRoute() {
                   : formatNumber(current.value)}
               </div>
             </div>
-            {unitMode === "currency" && data.total > 0 && current !== data.root && (
+            {parentPct !== null && parent && (
               <div className="text-xs opacity-70">
-                toplamın {((current.value ?? 0) / data.total * 100).toFixed(1)}%'i
+                <span className="opacity-60">{parent.name}</span>{" "}
+                içinde {parentPct.toFixed(1)}%
               </div>
             )}
           </section>
+
+          <div className="mb-2 flex items-center justify-end gap-1">
+            {VIEWS.map((v) => (
+              <button
+                key={v.id}
+                type="button"
+                onClick={() => setView(v.id)}
+                className={`rounded border px-2.5 py-1 text-[11px] transition-colors ${
+                  v.id === view
+                    ? "border-ink bg-ink text-cream"
+                    : "border-ink/30 hover:border-ink/60"
+                }`}
+              >
+                {v.label}
+              </button>
+            ))}
+          </div>
 
           <Treemap
             node={current}
             rootTotal={data.total}
             unitMode={unitMode}
+            view={view}
             onDrill={goDeeper}
           />
 
+          {timeline && timeline.points.length > 1 && (
+            <section className="mt-4">
+              <TimelineScrubber
+                points={timeline.points}
+                selectedDate={data.asof ?? asofParam}
+                onChange={setAsof}
+              />
+            </section>
+          )}
+
+          {meta?.note && (
+            <p className="mt-3 text-xs opacity-60">Not: {meta.note}</p>
+          )}
           {unitMode === "index" && (
             <p className="mt-3 text-xs opacity-60">
               Not: TÜFE bir endekstir; alt-dallar toplamı üst değere eşit değildir.
               Boyutlandırma endeks değerine göre yapılır (Faz 2'de ağırlık-bazlı
               görünüm gelecek).
+            </p>
+          )}
+          {data.total_source === "sum" && unitMode === "currency" && (
+            <p className="mt-2 text-xs opacity-60">
+              Not: Bu datagrupta açık bir "Toplam" serisi yok; üst değer alt
+              dalların toplamıdır.
             </p>
           )}
         </>

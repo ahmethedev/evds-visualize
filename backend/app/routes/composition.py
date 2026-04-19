@@ -1,12 +1,12 @@
 """GET /api/composition/{datagroup} — hierarchical snapshot for the treemap."""
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
 
-from ..evds_client import get_series_list, latest_values_by_code
+from ..evds_client import get_series_list, get_values, latest_values_by_code
 from ..hierarchy import build_tree
 
 router = APIRouter(prefix="/api", tags=["composition"])
@@ -65,4 +65,52 @@ def get_composition(
         "datagroup": datagroup,
         "asof": asof_date,
         **tree,
+    }
+
+
+@router.get("/composition/{datagroup}/timeline")
+def get_timeline(
+    datagroup: str,
+    years: int = Query(default=5, ge=1, le=20),
+) -> dict[str, Any]:
+    """Return [{date, total}] across the last `years` so the scrubber can plot it.
+
+    Uses the same total logic as build_tree so the timeline matches the snapshot.
+    """
+    try:
+        series_meta = get_series_list(datagroup)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"EVDS series fetch failed: {exc}") from exc
+    if not series_meta:
+        raise HTTPException(status_code=404, detail=f"No series for datagroup {datagroup}")
+
+    codes = [s["SERIE_CODE"] for s in series_meta]
+    end = datetime.now()
+    start = end - timedelta(days=years * 365)
+    try:
+        rows = get_values(codes, start, end)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"EVDS data fetch failed: {exc}") from exc
+
+    points: list[dict[str, Any]] = []
+    total_source: str | None = None
+    for row in rows:
+        date = row.get("date")
+        if not date:
+            continue
+        values = {c: row.get(c) for c in codes}
+        if not any(v is not None for v in values.values()):
+            continue
+        tree = build_tree(series_meta, values, datagroup)
+        if total_source is None:
+            total_source = tree["total_source"]
+        total = tree["total"]
+        if total is None or total == 0:
+            continue
+        points.append({"date": date, "total": float(total)})
+
+    return {
+        "datagroup": datagroup,
+        "total_source": total_source,
+        "points": points,
     }

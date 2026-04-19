@@ -1,6 +1,6 @@
 # EVDS Görselleştirme Projesi — Yol Haritası
 
-> Canlı dokümandır. Geliştirme ilerledikçe güncellenir. Son güncelleme: 2026-04-19 (Faz 1 tamam).
+> Canlı dokümandır. Geliştirme ilerledikçe güncellenir. Son güncelleme: 2026-04-19 (Faz 2 view toggle + CSS-transition animasyonları eklendi; animasyonlu geçişler `transform`/`width`/`height` ile morph ediyor).
 
 ---
 
@@ -246,13 +246,19 @@ Her faz sonu çalışır durumda olmalı; yarım bırakılmaz.
   - Parser hem `UST_SERIE_CODE` (sağlıklı ağaç) hem de "Toplam/Genel Endeks" isim kalıbını kullanır. 3 formatlı ada-parse gerekmedi; UST_SERIE_CODE alanı yeterli bilgi veriyor.
 
 ### Faz 2 — Katman 2 Tam: 9 kompozisyon + timeline
-- [ ] 9 datagroup için hiyerarşi parser genelleştirilir (3 format: COICOP, noktalı, harf+sayı)
-- [ ] Segment bar — 9 kompozisyon arası geçiş
-- [ ] Timeline scrubber component (d3-brush tabanlı)
-- [ ] Tarihe göre snapshot API'si
-- [ ] View toggle: Tree / Bar / Bar%
-- [ ] Animasyonlu geçişler (treemap cell'leri interpolate)
-- **Çıktı:** 9 kompozisyonun tamamı çalışır, zaman kaydırıcı snapshot'ı değiştirir
+- [x] 9 datagroup için hiyerarşi parser doğrulandı — UST_SERIE_CODE tüm formatlarda (COICOP, noktalı, harf+sayı) çalışıyor; 3-formatlı ad-parse'a gerek yok
+- [x] Segment bar — 9 kompozisyon arası geçiş (frontend/src/lib/datagroups.ts)
+- [x] Tarihe göre snapshot API'si — `/api/composition/{dg}?asof=YYYY-MM-DD` zaten çalışıyor (composition route)
+- [x] Parent-relative yüzde ("üst dal içinde %X") — dual-root gruplarda (bilanço, Para Arzı) doğru çalışır
+- [x] Timeline scrubber component + `/api/composition/{dg}/timeline` endpoint (sparkline + drag/click + ←/→ klavye; ?asof= URL ile senkron)
+- [x] View toggle: Tree / Bar / Bar% (`?view=` URL paramı ile paylaşılır)
+- [x] Animasyonlu geçişler — CSS transitions `<g transform>` + rect `width`/`height` üstünde; timeline scrubbing ve view değişiminde cell'ler morph eder
+- **Çıktı:** 9 kompozisyonun tamamı `/map/:datagroup` altında çalışır. Tree (d3 treemap), Bar (genişlik ∝ değer, en büyük = tam genişlik), Bar% (genişlik ∝ toplam payı) görünümleri arası geçiş yumuşak animasyonla. Timeline scrubber ile geçmiş tarihlere drill-down.
+- **Notlar:**
+  - 3 datagroup (`bie_abanlbil`, `bie_mbblnca`, `bie_pbpanal2`) iki paralel hiyerarşi içeriyor (AKTİF/PASİF; G-series/H-series). Şu an sibling gösteriliyor — ileride "view seçici" ile temizlenebilir.
+  - `bie_kbmgel`, `bie_kbmgid` "Toplam" satırı içermez (source="sum"); UI'da bir not gösteriliyor.
+  - Timeline endpoint default 5 yıl (override: `?years=N`); her tarih için `build_tree` çağırarak snapshot ile aynı toplam mantığını kullanır. d3-brush yerine HTML pointer events + SVG sparkline (daha az bağımlılık, aynı UX).
+  - Doğrulama betikleri: `explore/06_validate_datagroups.py`, `explore/07_inspect_tree.py`.
 
 ### Faz 3 — Katman 1: Landing dashboard
 - [ ] Gösterge kartı tasarımı + Sparkline component
@@ -300,7 +306,7 @@ Her faz sonu çalışır durumda olmalı; yarım bırakılmaz.
 | ROADMAP | ✅ Bu dosya |
 | Faz 0 | ✅ Tamamlandı (2026-04-18) |
 | Faz 1 | ✅ Tamamlandı (2026-04-19) — `bie_tedavultut` + `bie_tukfiy2025` |
-| Faz 2 | ⏳ Başlayacak — 9 kompozisyon + timeline scrubber |
+| Faz 2 | ✅ Tamamlandı (2026-04-19) — segment bar, 9 kompozisyon, timeline scrubber, view toggle (Tree/Bar/Bar%), CSS-transition morph animasyonları |
 
 ---
 

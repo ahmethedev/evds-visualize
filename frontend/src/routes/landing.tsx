@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { apiGet, type Health } from "../lib/api";
+import { DATAGROUPS } from "../lib/datagroups";
 
 export default function Landing() {
   const [health, setHealth] = useState<Health | null>(null);
@@ -15,21 +16,18 @@ export default function Landing() {
   return (
     <main className="mx-auto max-w-2xl p-8 font-mono">
       <h1 className="font-serif text-4xl mb-2">EVDS Görselleştirme</h1>
-      <p className="text-sm opacity-70 mb-4">Faz 1 — Ekonomi Haritası MVP.</p>
+      <p className="text-sm opacity-70 mb-4">Faz 2 — 9 kompozisyon.</p>
 
-      <nav className="mb-8 flex flex-wrap gap-2">
-        <Link
-          to="/map/bie_tedavultut"
-          className="rounded border border-ink/30 px-3 py-1 text-xs hover:border-ink/70"
-        >
-          Tedavüldeki Banknotlar
-        </Link>
-        <Link
-          to="/map/bie_tukfiy2025"
-          className="rounded border border-ink/30 px-3 py-1 text-xs hover:border-ink/70"
-        >
-          TÜFE 2025
-        </Link>
+      <nav className="mb-8 flex flex-wrap gap-1.5">
+        {DATAGROUPS.map((g) => (
+          <Link
+            key={g.code}
+            to={`/map/${g.code}`}
+            className="rounded border border-ink/30 px-2.5 py-1 text-xs hover:border-ink/70"
+          >
+            {g.label}
+          </Link>
+        ))}
       </nav>
 
       <section className="border border-ink/20 p-4 rounded">
