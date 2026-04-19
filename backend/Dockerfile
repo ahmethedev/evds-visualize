@@ -6,7 +6,6 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# uv — hızlı Python paket yöneticisi
 COPY --from=ghcr.io/astral-sh/uv:0.5.4 /uv /usr/local/bin/uv
 
 COPY pyproject.toml ./
@@ -16,13 +15,19 @@ RUN uv pip install --system --no-cache \
     "pydantic>=2.9" \
     "pydantic-settings>=2.6" \
     "evds>=0.2.7" \
-    "httpx>=0.27"
+    "httpx>=0.27" \
+    "slowapi>=0.1.9"
 
 COPY app ./app
 
-RUN mkdir -p /app/data
+RUN groupadd --system --gid 1001 app \
+    && useradd --system --uid 1001 --gid app --home-dir /app --shell /usr/sbin/nologin app \
+    && mkdir -p /app/data \
+    && chown -R app:app /app
 
-EXPOSE 8001
+USER app
+
+EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz').read()"

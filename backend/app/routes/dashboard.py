@@ -5,6 +5,7 @@ For `yoy_pct` transform the value *is* the YoY % of the index, not the index its
 """
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -13,6 +14,7 @@ from fastapi import APIRouter, HTTPException
 from ..evds_client import get_values
 from ..indicators import INDICATORS, ORDER, Indicator
 
+log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["dashboard"])
 
 
@@ -199,9 +201,10 @@ def get_dashboard() -> dict[str, Any]:
         cfg = INDICATORS[key]
         try:
             items.append(_build_indicator(key, cfg))
-        except Exception as exc:
-            errors[key] = str(exc)
+        except Exception:
+            log.exception("dashboard indicator failed: %s", key)
+            errors[key] = "unavailable"
             items.append(_empty(key, cfg))
     if errors and len(errors) == len(ORDER):
-        raise HTTPException(status_code=502, detail={"errors": errors})
+        raise HTTPException(status_code=502, detail="Upstream veri kaynağına ulaşılamadı")
     return {"indicators": items, "errors": errors or None}

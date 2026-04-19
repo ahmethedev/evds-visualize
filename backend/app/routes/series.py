@@ -7,13 +7,15 @@ Instead, when the caller provides `datagroup=`, we use it to look up metadata
 """
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Path, Query
 
 from ..evds_client import get_series_list, get_values
 
+log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["series"])
 
 
@@ -43,10 +45,10 @@ def _find_meta(datagroup: str | None, code: str) -> dict[str, Any] | None:
 
 @router.get("/series/{code}")
 def get_series(
-    code: str,
-    start: str | None = Query(default=None, description="YYYY-MM-DD"),
-    end: str | None = Query(default=None, description="YYYY-MM-DD"),
-    datagroup: str | None = Query(default=None, description="Datagroup code for metadata"),
+    code: str = Path(..., min_length=2, max_length=64, pattern=r"^[A-Za-z0-9._-]+$"),
+    start: str | None = Query(default=None, max_length=10, pattern=r"^\d{4}(-\d{2}(-\d{2})?)?$"),
+    end: str | None = Query(default=None, max_length=10, pattern=r"^\d{4}(-\d{2}(-\d{2})?)?$"),
+    datagroup: str | None = Query(default=None, min_length=2, max_length=64, pattern=r"^[A-Za-z0-9_-]+$"),
 ) -> dict[str, Any]:
     end_dt = _parse_date(end, datetime.now())
     start_dt = _parse_date(start, end_dt - timedelta(days=365 * 10))
@@ -56,7 +58,8 @@ def get_series(
     try:
         rows = get_values([code], start_dt, end_dt)
     except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"EVDS data fetch failed: {exc}") from exc
+        log.exception("EVDS data fetch failed for %s", code)
+        raise HTTPException(status_code=502, detail="Upstream veri kaynağına ulaşılamadı") from exc
 
     points = [
         {"date": r["date"], "value": r.get(code)}

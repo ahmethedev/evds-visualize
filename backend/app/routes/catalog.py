@@ -6,6 +6,7 @@ for the series inside a datagroup.
 """
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
@@ -16,6 +17,7 @@ from ..evds_client import (
     get_series_list,
 )
 
+log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["catalog"])
 
 TOP_LEVEL_IDS = {10, 15, 20, 25, 30, 35, 40, 45, 50, 55}
@@ -139,7 +141,7 @@ def _series_children(datagroup: str) -> list[dict[str, Any]]:
 
 @router.get("/catalog")
 def get_catalog(
-    parent: str | None = Query(default=None, description="Category id or datagroup code"),
+    parent: str | None = Query(default=None, min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_-]+$"),
 ) -> dict[str, Any]:
     if parent is None:
         return {"parent": None, "children": _top_level_nodes()}
@@ -148,9 +150,11 @@ def get_catalog(
         try:
             return {"parent": parent, "children": _category_children(int(parent))}
         except Exception as exc:
-            raise HTTPException(status_code=502, detail=f"catalog fetch failed: {exc}") from exc
+            log.exception("catalog fetch failed for %s", parent)
+            raise HTTPException(status_code=502, detail="Upstream veri kaynağına ulaşılamadı") from exc
 
     try:
         return {"parent": parent, "children": _series_children(parent)}
     except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"series fetch failed: {exc}") from exc
+        log.exception("series list fetch failed for %s", parent)
+        raise HTTPException(status_code=502, detail="Upstream veri kaynağına ulaşılamadı") from exc
