@@ -22,7 +22,7 @@ COPY app ./app
 
 RUN mkdir -p /app/data
 
-EXPOSE 8000
+EXPOSE 8001
 
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz').read()"
