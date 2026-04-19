@@ -10,7 +10,13 @@ WORKDIR /app
 COPY --from=ghcr.io/astral-sh/uv:0.5.4 /uv /usr/local/bin/uv
 
 COPY pyproject.toml ./
-RUN uv pip install --system --no-cache .
+RUN uv pip install --system --no-cache \
+    "fastapi>=0.115" \
+    "uvicorn[standard]>=0.32" \
+    "pydantic>=2.9" \
+    "pydantic-settings>=2.6" \
+    "evds>=0.2.7" \
+    "httpx>=0.27"
 
 COPY app ./app
 
